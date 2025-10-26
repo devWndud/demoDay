@@ -1,0 +1,16 @@
+names:
+- healthy
+- bacterial_spot
+- early_blight
+- late_blight
+- leaf_mold
+- septoria_spot
+- spider_mites
+- target_spot
+- mosaic_virus
+- yellow_leaf_curl
+nc: 10
+path: C:\Users\wndud\Documents\demoDay\data
+test: test/images
+train: train/images
+val: val/images
