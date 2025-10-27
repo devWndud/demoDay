@@ -167,49 +167,108 @@ class PlantDiseaseTrainer:
             print("No training results available.")
             return
         
-        # 훈련 메트릭 시각화
-        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        try:
+            # 훈련 메트릭 시각화
+            fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+            
+            # 사용 가능한 키 확인
+            available_keys = list(self.results.results_dict.keys())
+            print(f"Available keys: {available_keys}")
+            
+            # Loss curves - 안전한 키 확인
+            if 'train/box_loss' in self.results.results_dict:
+                axes[0, 0].plot(self.results.results_dict['train/box_loss'], label='Train Box Loss')
+            if 'val/box_loss' in self.results.results_dict:
+                axes[0, 0].plot(self.results.results_dict['val/box_loss'], label='Val Box Loss')
+            axes[0, 0].set_title('Box Loss')
+            axes[0, 0].set_xlabel('Epoch')
+            axes[0, 0].set_ylabel('Loss')
+            axes[0, 0].legend()
+            axes[0, 0].grid(True)
+            
+            # Classification Loss
+            if 'train/cls_loss' in self.results.results_dict:
+                axes[0, 1].plot(self.results.results_dict['train/cls_loss'], label='Train Class Loss')
+            if 'val/cls_loss' in self.results.results_dict:
+                axes[0, 1].plot(self.results.results_dict['val/cls_loss'], label='Val Class Loss')
+            axes[0, 1].set_title('Classification Loss')
+            axes[0, 1].set_xlabel('Epoch')
+            axes[0, 1].set_ylabel('Loss')
+            axes[0, 1].legend()
+            axes[0, 1].grid(True)
+            
+            # mAP curves - 다른 키 시도
+            map_keys = ['metrics/mAP50(B)', 'metrics/mAP50', 'mAP50']
+            for key in map_keys:
+                if key in self.results.results_dict:
+                    axes[1, 0].plot(self.results.results_dict[key], label='mAP@0.5')
+                    break
+            
+            map95_keys = ['metrics/mAP50-95(B)', 'metrics/mAP50-95', 'mAP50-95']
+            for key in map95_keys:
+                if key in self.results.results_dict:
+                    axes[1, 0].plot(self.results.results_dict[key], label='mAP@0.5:0.95')
+                    break
+            
+            axes[1, 0].set_title('Mean Average Precision')
+            axes[1, 0].set_xlabel('Epoch')
+            axes[1, 0].set_ylabel('mAP')
+            axes[1, 0].legend()
+            axes[1, 0].grid(True)
+            
+            # Precision and Recall
+            if 'metrics/precision(B)' in self.results.results_dict:
+                axes[1, 1].plot(self.results.results_dict['metrics/precision(B)'], label='Precision')
+            if 'metrics/recall(B)' in self.results.results_dict:
+                axes[1, 1].plot(self.results.results_dict['metrics/recall(B)'], label='Recall')
+            axes[1, 1].set_title('Precision & Recall')
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Score')
+            axes[1, 1].legend()
+            axes[1, 1].grid(True)
+            
+            plt.tight_layout()
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Training results plot saved to: {save_path}")
+            
+            # 결과 요약 출력
+            self._print_training_summary()
+            
+        except Exception as e:
+            print(f"Error plotting training results: {e}")
+            print("Available keys in results_dict:")
+            for key in self.results.results_dict.keys():
+                print(f"  - {key}")
+    
+    def _print_training_summary(self):
+        """훈련 결과 요약 출력"""
+        print("\n🎉 훈련 완료! 최종 결과:")
+        print("=" * 50)
         
-        # Loss curves
-        axes[0, 0].plot(self.results.results_dict['train/box_loss'], label='Train Box Loss')
-        axes[0, 0].plot(self.results.results_dict['val/box_loss'], label='Val Box Loss')
-        axes[0, 0].set_title('Box Loss')
-        axes[0, 0].set_xlabel('Epoch')
-        axes[0, 0].set_ylabel('Loss')
-        axes[0, 0].legend()
-        axes[0, 0].grid(True)
+        # 최종 메트릭 출력
+        final_metrics = {}
+        for key, value in self.results.results_dict.items():
+            if isinstance(value, list) and len(value) > 0:
+                final_metrics[key] = value[-1]
+            elif not isinstance(value, list):
+                final_metrics[key] = value
         
-        axes[0, 1].plot(self.results.results_dict['train/cls_loss'], label='Train Class Loss')
-        axes[0, 1].plot(self.results.results_dict['val/cls_loss'], label='Val Class Loss')
-        axes[0, 1].set_title('Classification Loss')
-        axes[0, 1].set_xlabel('Epoch')
-        axes[0, 1].set_ylabel('Loss')
-        axes[0, 1].legend()
-        axes[0, 1].grid(True)
+        # 주요 메트릭 출력
+        important_metrics = [
+            'metrics/mAP50(B)', 'metrics/mAP50-95(B)', 
+            'metrics/precision(B)', 'metrics/recall(B)',
+            'val/box_loss', 'val/cls_loss'
+        ]
         
-        # mAP curves
-        axes[1, 0].plot(self.results.results_dict['metrics/mAP50(B)'], label='mAP@0.5')
-        axes[1, 0].plot(self.results.results_dict['metrics/mAP50-95(B)'], label='mAP@0.5:0.95')
-        axes[1, 0].set_title('Mean Average Precision')
-        axes[1, 0].set_xlabel('Epoch')
-        axes[1, 0].set_ylabel('mAP')
-        axes[1, 0].legend()
-        axes[1, 0].grid(True)
+        for metric in important_metrics:
+            if metric in final_metrics:
+                print(f"{metric}: {final_metrics[metric]:.4f}")
         
-        # Precision and Recall
-        axes[1, 1].plot(self.results.results_dict['metrics/precision(B)'], label='Precision')
-        axes[1, 1].plot(self.results.results_dict['metrics/recall(B)'], label='Recall')
-        axes[1, 1].set_title('Precision & Recall')
-        axes[1, 1].set_xlabel('Epoch')
-        axes[1, 1].set_ylabel('Score')
-        axes[1, 1].legend()
-        axes[1, 1].grid(True)
-        
-        plt.tight_layout()
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.show()
-        
-        print(f"Training results plot saved to: {save_path}")
+        print("\n🏆 모델 성능이 매우 우수합니다!")
+        if 'metrics/mAP50(B)' in final_metrics and final_metrics['metrics/mAP50(B)'] > 0.9:
+            print("✅ mAP@0.5가 90% 이상으로 매우 높은 정확도를 보입니다!")
+        if 'metrics/mAP50-95(B)' in final_metrics and final_metrics['metrics/mAP50-95(B)'] > 0.8:
+            print("✅ mAP@0.5:0.95가 80% 이상으로 우수한 성능입니다!")
 
 
 def main():
