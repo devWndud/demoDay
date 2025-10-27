@@ -10,7 +10,7 @@ names:
 - mosaic_virus
 - yellow_leaf_curl
 nc: 10
-path: C:\Users\wndud\Documents\demoDay\data
+path: /root/wndud/demoDay/data
 test: test/images
 train: train/images
 val: val/images
